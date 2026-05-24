@@ -9,10 +9,11 @@ router.get('/', (_req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { currency, target_rate, direction } = req.body as {
+  const { currency, target_rate, direction, from_currency } = req.body as {
     currency: string;
     target_rate: number;
     direction: 'above' | 'below';
+    from_currency?: string; // pokud je nastaveno, jde o křížový pár from_currency/currency
   };
 
   if (!currency || typeof target_rate !== 'number' || !['above', 'below'].includes(direction)) {
@@ -21,9 +22,20 @@ router.post('/', (req, res) => {
 
   const result = db.prepare(
     'INSERT INTO alerts (currency, target_rate, direction, triggered, created_at) VALUES (?, ?, ?, 0, ?)'
-  ).run(currency, target_rate, direction, new Date().toISOString()) as { lastInsertRowid: number };
+  ).run(
+    from_currency ? `${from_currency}/${currency}` : currency,
+    target_rate,
+    direction,
+    new Date().toISOString()
+  ) as { lastInsertRowid: number };
 
-  res.status(201).json({ id: result.lastInsertRowid, currency, target_rate, direction, triggered: 0 });
+  res.status(201).json({
+    id: result.lastInsertRowid,
+    currency: from_currency ? `${from_currency}/${currency}` : currency,
+    target_rate,
+    direction,
+    triggered: 0,
+  });
 });
 
 router.delete('/:id', (req, res) => {

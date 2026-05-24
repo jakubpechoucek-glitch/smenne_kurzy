@@ -14,6 +14,12 @@ export async function getRateHistory(currency: string, months = 12): Promise<Rat
   return res.json();
 }
 
+export async function getCrossRateHistory(from: string, to: string, months = 12): Promise<RatePoint[]> {
+  const res = await fetch(`${BASE}/rates/cross-history?from=${from}&to=${to}&months=${months}`);
+  if (!res.ok) throw new Error('Nelze načíst křížová data');
+  return res.json();
+}
+
 export async function getPortfolio(): Promise<PortfolioEntry[]> {
   const res = await fetch(`${BASE}/portfolio`);
   if (!res.ok) throw new Error('Nelze načíst portfolio');
@@ -38,12 +44,13 @@ export async function getAlerts(): Promise<Alert[]> {
 export async function createAlert(
   currency: string,
   target_rate: number,
-  direction: 'above' | 'below'
+  direction: 'above' | 'below',
+  from_currency?: string,
 ): Promise<Alert> {
   const res = await fetch(`${BASE}/alerts`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ currency, target_rate, direction }),
+    body: JSON.stringify({ currency, target_rate, direction, from_currency }),
   });
   if (!res.ok) throw new Error('Nelze vytvořit alarm');
   return res.json();
