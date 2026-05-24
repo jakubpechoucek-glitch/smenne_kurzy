@@ -29,13 +29,9 @@ if (isProd) {
 }
 
 initDb();
-startScheduler()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server běží na portu ${PORT} (${isProd ? 'produkce' : 'vývoj'})`);
-    });
-  })
-  .catch(err => {
-    console.error('Chyba při startu:', err);
-    process.exit(1);
-  });
+
+// Server nastartuje okamžitě, data se stahují na pozadí
+app.listen(PORT, () => {
+  console.log(`Server běží na portu ${PORT} (${isProd ? 'produkce' : 'vývoj'})`);
+  startScheduler().catch(err => console.error('Chyba při inicializaci kurzů:', err));
+});
