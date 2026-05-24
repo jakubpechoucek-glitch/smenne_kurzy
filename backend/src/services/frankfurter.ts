@@ -1,4 +1,4 @@
-import { CURRENCIES, db } from '../db';
+import { CURRENCIES, db, transaction } from '../db';
 
 const BASE_URL = 'https://api.frankfurter.app';
 
@@ -40,10 +40,9 @@ export function saveRatesToDb(date: string, rates: Record<string, number>) {
   const stmt = db.prepare(
     'INSERT OR REPLACE INTO exchange_rates (date, from_currency, to_currency, rate) VALUES (?, ?, ?, ?)'
   );
-  const insertAll = db.transaction(() => {
+  transaction(() => {
     for (const [currency, rate] of Object.entries(rates)) {
       stmt.run(date, 'CZK', currency, rate);
     }
   });
-  insertAll();
 }

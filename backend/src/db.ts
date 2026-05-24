@@ -1,14 +1,25 @@
-import Database from 'better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 import path from 'path';
 import fs from 'fs';
 
 const dataDir = path.join(__dirname, '../data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-export const db = new Database(path.join(dataDir, 'rates.db'));
+export const db = new DatabaseSync(path.join(dataDir, 'rates.db'));
 
 export const CURRENCIES = ['EUR', 'GBP', 'PHP', 'USD'] as const;
 export type Currency = 'CZK' | 'EUR' | 'GBP' | 'PHP' | 'USD';
+
+export function transaction(fn: () => void) {
+  db.exec('BEGIN');
+  try {
+    fn();
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+}
 
 export function initDb() {
   db.exec(`
@@ -36,15 +47,11 @@ export function initDb() {
     );
   `);
 
-  // Seed portfolio currencies if empty
-  const count = (db.prepare('SELECT COUNT(*) as c FROM portfolio').get() as { c: number }).c;
-  if (count === 0) {
-    const insert = db.prepare(
-      'INSERT OR IGNORE INTO portfolio (currency, amount, updated_at) VALUES (?, 0, ?)'
-    );
+  const row = db.prepare('SELECT COUNT(*) as c FROM portfolio').get() as { c: number };
+  if (row.c === 0) {
     const now = new Date().toISOString();
     for (const c of ['CZK', 'EUR', 'GBP', 'PHP', 'USD']) {
-      insert.run(c, now);
+      db.prepare('INSERT OR IGNORE INTO portfolio (currency, amount, updated_at) VALUES (?, 0, ?)').run(c, now);
     }
   }
 }

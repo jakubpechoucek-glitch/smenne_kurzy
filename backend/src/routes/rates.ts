@@ -1,25 +1,21 @@
 import { Router } from 'express';
-import { db, CURRENCIES } from '../db';
+import { db, CURRENCIES, transaction } from '../db';
 import { fetchLatestRates, saveRatesToDb } from '../services/frankfurter';
 
 const router = Router();
 
-// GET /api/rates/latest
 router.get('/latest', async (_req, res) => {
   try {
     const data = await fetchLatestRates();
     saveRatesToDb(data.date, data.rates);
 
-    // Build display rates (how many CZK per 1 foreign currency)
     const displayRates: Record<string, { raw: number; display: number }> = {};
     for (const [currency, rate] of Object.entries(data.rates)) {
       displayRates[currency] = { raw: rate, display: parseFloat((1 / rate).toFixed(4)) };
     }
-
     res.json({ date: data.date, rates: displayRates });
   } catch (err) {
     console.error(err);
-    // Fall back to DB
     const latest = db.prepare(`
       SELECT to_currency, rate, date FROM exchange_rates
       WHERE from_currency = 'CZK'
@@ -39,7 +35,6 @@ router.get('/latest', async (_req, res) => {
   }
 });
 
-// GET /api/rates/history?currency=EUR&months=12
 router.get('/history', (req, res) => {
   const currency = (req.query.currency as string) || 'EUR';
   const months = Math.min(parseInt(req.query.months as string) || 12, 12);
@@ -55,7 +50,6 @@ router.get('/history', (req, res) => {
     ORDER BY date ASC
   `).all(currency, startStr) as { date: string; rate: number }[];
 
-  // Invert to "CZK per 1 foreign currency"
   const result = rows.map(r => ({
     date: r.date,
     rate: parseFloat((1 / r.rate).toFixed(4)),

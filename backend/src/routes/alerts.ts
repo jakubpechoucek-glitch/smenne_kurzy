@@ -3,13 +3,11 @@ import { db } from '../db';
 
 const router = Router();
 
-// GET /api/alerts
 router.get('/', (_req, res) => {
   const rows = db.prepare('SELECT * FROM alerts ORDER BY created_at DESC').all();
   res.json(rows);
 });
 
-// POST /api/alerts
 router.post('/', (req, res) => {
   const { currency, target_rate, direction } = req.body as {
     currency: string;
@@ -23,19 +21,17 @@ router.post('/', (req, res) => {
 
   const result = db.prepare(
     'INSERT INTO alerts (currency, target_rate, direction, triggered, created_at) VALUES (?, ?, ?, 0, ?)'
-  ).run(currency, target_rate, direction, new Date().toISOString());
+  ).run(currency, target_rate, direction, new Date().toISOString()) as { lastInsertRowid: number };
 
   res.status(201).json({ id: result.lastInsertRowid, currency, target_rate, direction, triggered: 0 });
 });
 
-// DELETE /api/alerts/:id
 router.delete('/:id', (req, res) => {
-  const result = db.prepare('DELETE FROM alerts WHERE id = ?').run(req.params.id);
+  const result = db.prepare('DELETE FROM alerts WHERE id = ?').run(req.params.id) as { changes: number };
   if (result.changes === 0) return res.status(404).json({ error: 'Alarm nenalezen' });
   res.json({ ok: true });
 });
 
-// PATCH /api/alerts/:id/trigger
 router.patch('/:id/trigger', (req, res) => {
   db.prepare('UPDATE alerts SET triggered = 1 WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
