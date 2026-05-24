@@ -10,6 +10,7 @@ export default function Portfolio() {
   const [rates, setRates] = useState<LatestRates | null>(null);
   const [editing, setEditing] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -34,6 +35,8 @@ export default function Portfolio() {
         prev.map(e => e.currency === currency ? { ...e, amount } : e)
       );
       setEditing(prev => { const n = { ...prev }; delete n[currency]; return n; });
+      setSaved(currency);
+      setTimeout(() => setSaved(null), 2000);
     } catch {
       setError('Nepodařilo se uložit');
     } finally {
@@ -97,6 +100,7 @@ export default function Portfolio() {
                         step="any"
                         value={editing[currency] ?? amount}
                         onChange={e => handleEdit(currency, e.target.value)}
+                        onBlur={() => handleSave(currency)}
                         onKeyDown={e => e.key === 'Enter' && handleSave(currency)}
                         className="w-32 bg-slate-700 border border-slate-600 rounded px-2 py-1 text-right text-sm text-slate-100 focus:outline-none focus:border-blue-500"
                       />
@@ -111,16 +115,9 @@ export default function Portfolio() {
                       <div className="h-1 rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
                     </div>
                   </td>
-                  <td className="p-4">
-                    {editing[currency] !== undefined && editing[currency] !== String(amount) && (
-                      <button
-                        onClick={() => handleSave(currency)}
-                        disabled={saving === currency}
-                        className="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-xs font-medium transition-colors disabled:opacity-50"
-                      >
-                        {saving === currency ? '…' : 'Uložit'}
-                      </button>
-                    )}
+                  <td className="p-4 w-8 text-center">
+                    {saving === currency && <span className="text-slate-500 text-xs">…</span>}
+                    {saved === currency && <span className="text-green-400 text-sm">✓</span>}
                   </td>
                 </tr>
               );
