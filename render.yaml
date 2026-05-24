@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: smenne-kurzy
+    env: node
+    region: frankfurt
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build && cd ../backend && npm install
+    startCommand: cd backend && NODE_ENV=production npx tsx src/index.ts
+    envVars:
+      - key: NODE_ENV
+        value: production
